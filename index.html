@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cloud Auth System</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f3f4f6;
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      background: #e5e7eb;
+      border-radius: 8px 8px 0 0;
+    }
+
+    .tab.active {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 0.5rem 0 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .password-toggle {
+      float: right;
+      margin-top: -2.5rem;
+      margin-right: 0.5rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #2563eb;
+    }
+
+    button {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      width: 100%;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    pre {
+      background: #f9fafb;
+      padding: 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      overflow: auto;
+      word-wrap: break-word;
+    }
+
+    .logout {
+      margin-top: 1rem;
+      background: #ef4444;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('register')">Register</div>
+      <div class="tab" onclick="switchTab('login')">Login</div>
+      <div class="tab" onclick="switchTab('profile')">Profile</div>
+    </div>
+
+    <div id="register" class="section active">
+      <h2>Create Account</h2>
+      <input id="reg-username" placeholder="Username" />
+      <input id="reg-email" placeholder="Email" />
+      <input id="reg-password" type="password" placeholder="Password" />
+      <div class="password-toggle" onclick="togglePassword('reg-password')">Show</div>
+      <button onclick="register()">Register</button>
+    </div>
+
+    <div id="login" class="section">
+      <h2>Login</h2>
+      <input id="login-username" placeholder="Username" />
+      <input id="login-password" type="password" placeholder="Password" />
+      <div class="password-toggle" onclick="togglePassword('login-password')">Show</div>
+      <button onclick="login()">Login</button>
+    </div>
+
+    <div id="profile" class="section">
+      <h2>Welcome, <span id="user-name">Guest</span>!</h2>
+      <pre><strong>Auth Token:</strong> <span id="auth-token">[Not logged in]</span></pre>
+      <button onclick="getProfile()">Load Profile</button>
+      <pre id="profile-info">Click above to view your profile</pre>
+      <button class="logout" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <script>
+    const baseURL = 'https://cloud-auth-app.onrender.com/api';
+    let token = '';
+    let currentUser = '';
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function togglePassword(id) {
+      const field = document.getElementById(id);
+      field.type = field.type === 'password' ? 'text' : 'password';
+    }
+
+    function clearInputs() {
+      document.querySelectorAll('input').forEach(i => i.value = '');
+    }
+
+    function register() {
+      fetch(`${baseURL}/register/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('reg-username').value,
+          email: document.getElementById('reg-email').value,
+          password: document.getElementById('reg-password').value
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.token) {
+          token = data.token;
+          currentUser = document.getElementById('reg-username').value;
+          document.getElementById('user-name').innerText = currentUser;
+          document.getElementById('auth-token').innerText = token;
+          alert('Registration successful!');
+          switchTab('profile');
+          clearInputs();
+        } else {
+          alert('Registration failed. Check console.');
+          console.log(data);
+        }
+      });
+    }
+
+    function login() {
+      fetch(`${baseURL}/login/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('login-username').value,
+          password: document.getElementById('login-password').value
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.token) {
+          token = data.token;
+          currentUser = document.getElementById('login-username').value;
+          document.getElementById('user-name').innerText = currentUser;
+          document.getElementById('auth-token').innerText = token;
+          alert('Login successful!');
+          switchTab('profile');
+          clearInputs();
+        } else {
+          alert('Login failed. Check credentials.');
+          console.log(data);
+        }
+      });
+    }
+
+    function getProfile() {
+      fetch(`${baseURL}/profile/`, {
+        headers: { 'Authorization': `Token ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('profile-info').innerText = JSON.stringify(data, null, 2);
+      });
+    }
+
+    function logout() {
+      token = '';
+      currentUser = '';
+      alert('Logged out');
+      document.getElementById('user-name').innerText = 'Guest';
+      document.getElementById('auth-token').innerText = '[Not logged in]';
+      document.getElementById('profile-info').innerText = 'Click above to view your profile';
+      switchTab('login');
+    }
+  </script>
+</body>
+</html>
